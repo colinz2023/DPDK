@@ -109,6 +109,8 @@ eal_alarm_callback(void *arg __rte_unused)
 		free(ap);
 	}
 
+	// 这里也要重置一下定时器
+	// 因为已经完成的定时器 entry 已经删除了， 相应的超时时间也要更新
 	if (!LIST_EMPTY(&alarm_list)) {
 		struct itimerspec atime = { .it_interval = { 0, 0 } };
 
@@ -174,6 +176,7 @@ rte_eal_alarm_set(uint64_t us, rte_eal_alarm_callback cb_fn, void *cb_arg)
 		}
 	}
 
+	// 如果新增的定时器是头，则重置超时时间
 	if (LIST_FIRST(&alarm_list) == new_alarm) {
 		struct itimerspec alarm_time = {
 			.it_interval = {0, 0},
@@ -219,6 +222,8 @@ rte_eal_alarm_cancel(rte_eal_alarm_callback cb_fn, void *cb_arg)
 				/* If calling from other context, mark that alarm is executing
 				 * so loop can spin till it finish. Otherwise we are trying to
 				 * cancel our self - mark it by EINPROGRESS */
+				// 定时器正在运行回调
+				// 如果取消线程和回调线程不是同一个线程，标记为 executing
 				if (pthread_equal(ap->executing_id, pthread_self()) == 0)
 					executing++;
 				else

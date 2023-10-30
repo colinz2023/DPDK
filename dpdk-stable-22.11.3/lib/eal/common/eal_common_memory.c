@@ -217,6 +217,7 @@ eal_memseg_list_init_named(struct rte_memseg_list *msl, const char *name,
 	return 0;
 }
 
+// 主要是分配 memseg 的存放空间，还有 meta 信息
 int
 eal_memseg_list_init(struct rte_memseg_list *msl, uint64_t page_sz,
 		int n_segs, int socket_id, int type_msl_idx, bool heap)
@@ -230,6 +231,7 @@ eal_memseg_list_init(struct rte_memseg_list *msl, uint64_t page_sz,
 		msl, name, page_sz, n_segs, socket_id, heap);
 }
 
+// 给memseg分配虚存空间
 int
 eal_memseg_list_alloc(struct rte_memseg_list *msl, int reserve_flags)
 {
@@ -264,6 +266,7 @@ eal_memseg_list_alloc(struct rte_memseg_list *msl, int reserve_flags)
 	return 0;
 }
 
+// 对 msl 赋值，n个连续的 memseg
 void
 eal_memseg_list_populate(struct rte_memseg_list *msl, void *addr, int n_segs)
 {
@@ -289,6 +292,7 @@ eal_memseg_list_populate(struct rte_memseg_list *msl, void *addr, int n_segs)
 	}
 }
 
+// 通过虚存地址在 msl 上查找 memseg
 static struct rte_memseg *
 virt2memseg(const void *addr, const struct rte_memseg_list *msl)
 {
@@ -308,10 +312,11 @@ virt2memseg(const void *addr, const struct rte_memseg_list *msl)
 
 	/* now, calculate index */
 	arr = &msl->memseg_arr;
-	ms_idx = RTE_PTR_DIFF(addr, msl->base_va) / msl->page_sz;
-	return rte_fbarray_get(arr, ms_idx);
+	ms_idx = RTE_PTR_DIFF(addr, msl->base_va) / msl->page_sz; // 获得下标 index
+	return rte_fbarray_get(arr, ms_idx);					  // 返回 memseg
 }
 
+// 这里是对比每一个 msl
 static struct rte_memseg_list *
 virt2memseg_list(const void *addr)
 {
@@ -325,6 +330,7 @@ virt2memseg_list(const void *addr)
 
 		start = msl->base_va;
 		end = RTE_PTR_ADD(start, msl->len);
+		// 找到了
 		if (addr >= start && addr < end)
 			break;
 	}
@@ -334,6 +340,7 @@ virt2memseg_list(const void *addr)
 	return msl;
 }
 
+// 查找虚存在哪个 msl 上
 struct rte_memseg_list *
 rte_mem_virt2memseg_list(const void *addr)
 {
@@ -392,6 +399,7 @@ rte_mem_iova2virt(rte_iova_t iova)
 	return vi.virt;
 }
 
+// 通过虚存找到 memseg
 struct rte_memseg *
 rte_mem_virt2memseg(const void *addr, const struct rte_memseg_list *msl)
 {
@@ -413,6 +421,7 @@ physmem_size(const struct rte_memseg_list *msl, void *arg)
 }
 
 /* get the total size of memory */
+// 总共的内存大小
 uint64_t
 rte_eal_get_physmem_size(void)
 {
@@ -661,6 +670,8 @@ rte_mem_lock_page(const void *virt)
 	return rte_mem_lock((void *)aligned, page_size);
 }
 
+// 遍历 mcfg->memsegs
+// 连续的 ？
 int
 rte_memseg_contig_walk_thread_unsafe(rte_memseg_contig_walk_t func, void *arg)
 {
@@ -713,6 +724,7 @@ rte_memseg_contig_walk(rte_memseg_contig_walk_t func, void *arg)
 	return ret;
 }
 
+// 遍历所有的 memseg
 int
 rte_memseg_walk_thread_unsafe(rte_memseg_walk_t func, void *arg)
 {
@@ -754,6 +766,7 @@ rte_memseg_walk(rte_memseg_walk_t func, void *arg)
 	return ret;
 }
 
+// 遍历所有的msl
 int
 rte_memseg_list_walk_thread_unsafe(rte_memseg_list_walk_t func, void *arg)
 {
@@ -773,6 +786,7 @@ rte_memseg_list_walk_thread_unsafe(rte_memseg_list_walk_t func, void *arg)
 	return 0;
 }
 
+// 遍历所有的 msl
 int
 rte_memseg_list_walk(rte_memseg_list_walk_t func, void *arg)
 {

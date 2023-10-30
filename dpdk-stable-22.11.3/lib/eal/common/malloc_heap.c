@@ -68,6 +68,8 @@ check_hugepage_sz(unsigned flags, uint64_t hugepage_sz)
 	return check_flag & flags;
 }
 
+// 通过 heap 的 socket ID 判断，返回 heap ID
+// 每一个 socket 都对应一个 heap
 int
 malloc_socket_to_heap_id(unsigned int socket_id)
 {
@@ -92,17 +94,19 @@ malloc_heap_add_memory(struct malloc_heap *heap, struct rte_memseg_list *msl,
 {
 	struct malloc_elem *elem = start;
 
+	// 初始化节点
 	malloc_elem_init(elem, heap, msl, len, elem, len, dirty);
-
+	// 插入节点
 	malloc_elem_insert(elem);
-
+	// 合并 elem，内存连续可合并的
 	elem = malloc_elem_join_adjacent_free(elem);
-
+	// 将 elem 节点插入到 heap 的 free_head 中
 	malloc_elem_free_list_insert(elem);
 
 	return elem;
 }
 
+// 将 memseg 添加到对应的 heap 上
 static int
 malloc_add_seg(const struct rte_memseg_list *msl,
 		const struct rte_memseg *ms, size_t len, void *arg __rte_unused)
@@ -250,7 +254,7 @@ heap_alloc(struct malloc_heap *heap, const char *type __rte_unused, size_t size,
 
 		asan_set_redzone(elem, user_size);
 	}
-
+	// 返回的是 (void *)(&elem[1])
 	return elem == NULL ? NULL : (void *)(&elem[1]);
 }
 
@@ -1391,6 +1395,7 @@ malloc_heap_destroy(struct malloc_heap *heap)
 	return 0;
 }
 
+// 初始化 heap
 int
 rte_eal_malloc_heap_init(void)
 {
@@ -1407,6 +1412,7 @@ rte_eal_malloc_heap_init(void)
 		mcfg->next_socket_id = EXTERNAL_HEAP_MIN_SOCKET_ID;
 
 		/* assign names to default DPDK heaps */
+		// 每一个 socket 都分配一个 Heap。 这里分配名字、SocketID
 		for (i = 0; i < rte_socket_count(); i++) {
 			struct malloc_heap *heap = &mcfg->malloc_heaps[i];
 			char heap_name[RTE_HEAP_NAME_MAX_LEN];

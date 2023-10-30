@@ -53,7 +53,7 @@ struct rte_memseg {
 		uint64_t addr_64;   /**< Makes sure addr is always 64 bits */
 	};
 	size_t len;               /**< Length of the segment. */
-	uint64_t hugepage_sz;       /**< The pagesize of underlying memory */
+	uint64_t hugepage_sz;       /**< The pagesize of underlying memory */ // 如，2M， 1G
 	int32_t socket_id;          /**< NUMA socket ID. */
 	uint32_t nchannel;          /**< Number of channels. */
 	uint32_t nrank;             /**< Number of ranks. */
@@ -78,7 +78,7 @@ struct rte_memseg_list {
 	size_t len; /**< Length of memory area covered by this memseg list. */
 	unsigned int external; /**< 1 if this list points to external memory */
 	unsigned int heap; /**< 1 if this list points to a heap */
-	struct rte_fbarray memseg_arr;
+	struct rte_fbarray memseg_arr; // array 存的是 rte_memseg
 };
 
 /**

@@ -65,6 +65,7 @@ create_shared_memory(const char *filename, const size_t mem_size)
 	return map_shared_memory(filename, mem_size, O_RDWR | O_CREAT);
 }
 
+// 读取 /sys/kernel/mm/hugepages/XXXX/value
 static int get_hp_sysfs_value(const char *subdir, const char *file, unsigned long *val)
 {
 	char path[PATH_MAX];
@@ -84,6 +85,10 @@ get_num_hugepages(const char *subdir, size_t sz, unsigned int reusable_pages)
 	const char *nr_rsvd_file = "resv_hugepages";
 	const char *nr_over_file = "nr_overcommit_hugepages";
 	const char *nr_splus_file = "surplus_hugepages";
+	//nr_hp_file 代表系统中可用的巨页数量，即剩余的巨页数量。
+	//nr_rsvd_file 代表已经被分配的巨页数量。
+	//nr_over_file 代表超额提交的巨页数量。
+	//nr_splus_file 代表系统中可用的额外巨页数量。
 
 	/* first, check how many reserved pages kernel reports */
 	if (get_hp_sysfs_value(subdir, nr_rsvd_file, &resv_pages) < 0)
@@ -129,6 +134,7 @@ get_num_hugepages(const char *subdir, size_t sz, unsigned int reusable_pages)
 	return num_pages;
 }
 
+// 注意是 on node 上的，可用的 page 个数
 static uint32_t
 get_num_hugepages_on_node(const char *subdir, unsigned int socket, size_t sz)
 {
@@ -168,6 +174,7 @@ get_num_hugepages_on_node(const char *subdir, unsigned int socket, size_t sz)
 	return num_pages;
 }
 
+// 系统默认的大页大小
 static uint64_t
 get_default_hp_size(void)
 {
@@ -192,6 +199,8 @@ get_default_hp_size(void)
 	return size;
 }
 
+// 找到挂在的目录
+// return 0， found
 static int
 get_hugepage_dir(uint64_t hugepage_sz, char *hugedir, int len)
 {
@@ -365,7 +374,8 @@ walk_hugedir(const char *hugedir, walk_hugedir_t *cb, void *user_data)
 				.file_name = dirent->d_name,
 				.user_data = user_data,
 			});
-
+		// According to the [Linux man page](https://man7.org/linux/man-pages/man2/flock.2.html)
+		// for flock, "closing any file descriptor for the file will release all locks held on the file."
 		close (fd);
 		dirent = readdir(dir);
 	}
@@ -478,6 +488,8 @@ calc_num_pages(struct hugepage_info *hpi, struct dirent *dirent,
 	}
 }
 
+// 初始化，internal_conf->hugepage_info 数组
+// 按照大页页面大小，由大到小排序
 static int
 hugepage_info_init(void)
 {	const char dirent_start_text[] = "hugepages-";
@@ -501,6 +513,7 @@ hugepage_info_init(void)
 	for (dirent = readdir(dir); dirent != NULL; dirent = readdir(dir)) {
 		struct hugepage_info *hpi;
 
+		// 以 hugepages- 开头的目录
 		if (strncmp(dirent->d_name, dirent_start_text,
 			    dirent_start_len) != 0)
 			continue;
@@ -545,6 +558,7 @@ hugepage_info_init(void)
 		}
 
 		/* try to obtain a writelock */
+		// 已有 mountpoint 的情况
 		hpi->lock_descriptor = open(hpi->hugedir, O_RDONLY);
 
 		/* if blocking lock failed */
@@ -579,6 +593,7 @@ hugepage_info_init(void)
 	if (dirent != NULL)
 		return -1;
 
+	// 多少种大页
 	internal_conf->num_hugepage_sizes = num_sizes;
 
 	/* sort the page directory entries by size, largest to smallest */
@@ -586,6 +601,7 @@ hugepage_info_init(void)
 	      sizeof(internal_conf->hugepage_info[0]), compare_hpi);
 
 	/* now we have all info, check we have at least one valid size */
+	// 至少有一个 page
 	for (i = 0; i < num_sizes; i++) {
 		/* pages may no longer all be on socket 0, so check all */
 		unsigned int j, num_pages = 0;
@@ -640,6 +656,7 @@ eal_hugepage_info_init(void)
 		tmp->lock_descriptor = -1;
 	}
 
+	// 共享内存同步到文件
 	if (munmap(tmp_hpi, sizeof(internal_conf->hugepage_info)) < 0) {
 		RTE_LOG(ERR, EAL, "Failed to unmap shared memory!\n");
 		return -1;

@@ -108,7 +108,7 @@ rte_mem_virt2phy(const void *virtaddr)
 			__func__, strerror(errno));
 		return RTE_BAD_IOVA;
 	}
-
+	// page entry 偏移
 	virt_pfn = (unsigned long)virtaddr / page_size;
 	offset = sizeof(uint64_t) * virt_pfn;
 	if (lseek(fd, offset, SEEK_SET) == (off_t) -1) {
@@ -137,7 +137,7 @@ rte_mem_virt2phy(const void *virtaddr)
 	 */
 	if ((page & 0x7fffffffffffffULL) == 0)
 		return RTE_BAD_IOVA;
-
+	// 这块很自然。 得到物理 page 的地址，再加上地址的偏移
 	physaddr = ((page & 0x7fffffffffffffULL) * page_size)
 		+ ((unsigned long)virtaddr % page_size);
 
@@ -179,7 +179,7 @@ set_physaddrs(struct hugepage_file *hugepg_tbl, struct hugepage_info *hpi)
 {
 	unsigned int i;
 	static phys_addr_t addr;
-
+	// addr 从零开始的，连续的
 	for (i = 0; i < hpi->num_pages[0]; i++) {
 		hugepg_tbl[i].physaddr = addr;
 		addr += hugepg_tbl[i].size;
@@ -656,6 +656,9 @@ unmap_unneeded_hugepages(struct hugepage_file *hugepg_tbl,
 	return 0;
 }
 
+// 现在 memseg_list 找起始的 memseg
+// 然后根据 memseg_list 上的虚存地址重新映射物理内存(hugetlbfs)，再给 memseg 赋值
+// 参数 hugepages 是物理内存连续的
 static int
 remap_segment(struct hugepage_file *hugepages, int seg_start, int seg_end)
 {
@@ -990,6 +993,8 @@ prealloc_segments(struct hugepage_file *hugepages, int n_pages)
  * backwards, therefore we have to process the entire memseg first before
  * remapping it into memseg list VA space.
  */
+// 只有连续的 hugepage_file，
+// 且是不同 socket 上的，不同 page size 的，才会在一个 memseg_list 上
 static int
 remap_needed_hugepages(struct hugepage_file *hugepages, int n_pages)
 {
@@ -1246,8 +1251,10 @@ eal_legacy_hugepage_init(void)
 
 	/* calculate total number of hugepages available. at this point we haven't
 	 * yet started sorting them so they all are on socket 0 */
+	// num_hugepage_sizes: 多少种大页
 	for (i = 0; i < (int) internal_conf->num_hugepage_sizes; i++) {
 		/* meanwhile, also initialize used_hp hugepage sizes in used_hp */
+		// 4M、1G 等
 		used_hp[i].hugepage_sz = internal_conf->hugepage_info[i].hugepage_sz;
 
 		nr_hugepages += internal_conf->hugepage_info[i].num_pages[0];
@@ -1329,7 +1336,8 @@ eal_legacy_hugepage_init(void)
 					(unsigned)(hpi->hugepage_sz / 0x100000));
 			goto fail;
 		}
-
+		// tmp_hp(hugepage_file[]) 按照硬件地址的大小排序
+		// 每次从偏移开始，每次只排序 hugepage 大小相同的
 		qsort(&tmp_hp[hp_offset], hpi->num_pages[0],
 		      sizeof(struct hugepage_file), cmp_physaddr);
 
@@ -1915,6 +1923,7 @@ memseg_secondary_init(void)
 	return 0;
 }
 
+// msl 初始化
 int
 rte_eal_memseg_init(void)
 {

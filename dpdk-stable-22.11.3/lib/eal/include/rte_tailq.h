@@ -54,6 +54,8 @@ struct rte_tailq_elem {
 /**
  * Return the first tailq entry cast to the right struct.
  */
+// 转换成相应的结构体
+// 类似一个多态的功能
 #define RTE_TAILQ_CAST(tailq_entry, struct_name) \
 	(struct struct_name *)&(tailq_entry)->tailq_head
 

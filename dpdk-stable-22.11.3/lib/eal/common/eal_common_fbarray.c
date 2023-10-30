@@ -21,10 +21,10 @@
 #include "rte_fbarray.h"
 
 #define MASK_SHIFT 6ULL
-#define MASK_ALIGN (1ULL << MASK_SHIFT)
-#define MASK_LEN_TO_IDX(x) ((x) >> MASK_SHIFT)
-#define MASK_LEN_TO_MOD(x) ((x) - RTE_ALIGN_FLOOR(x, MASK_ALIGN))
-#define MASK_GET_IDX(idx, mod) ((idx << MASK_SHIFT) + mod)
+#define MASK_ALIGN (1ULL << MASK_SHIFT)           // 64bits，bitmap数组 是 []uint64_t 类型
+#define MASK_LEN_TO_IDX(x) ((x) >> MASK_SHIFT)    // 转换为 bitmap数组的下标
+#define MASK_LEN_TO_MOD(x) ((x) - RTE_ALIGN_FLOOR(x, MASK_ALIGN))  // 转换为 bit的偏移，即在一个 uint64_t bit的位置
+#define MASK_GET_IDX(idx, mod) ((idx << MASK_SHIFT) + mod)         // 通过 bitmap数组的下标 和 最高位 bit的偏移，转换为长度
 
 /*
  * We use this to keep track of created/attached memory areas to prevent user
@@ -48,10 +48,11 @@ static rte_spinlock_t mem_area_lock = RTE_SPINLOCK_INITIALIZER;
  */
 
 struct used_mask {
-	unsigned int n_masks;
-	uint64_t data[];
+	unsigned int n_masks;  // 个数
+	uint64_t data[];       // bitmap 数组
 };
 
+// mask 区的大小
 static size_t
 calc_mask_size(unsigned int len)
 {
@@ -63,6 +64,8 @@ calc_mask_size(unsigned int len)
 			sizeof(uint64_t) * MASK_LEN_TO_IDX(len);
 }
 
+// | data | mask |
+// 计算的大小，要加上 mask 区的大小，page_sz对齐
 static size_t
 calc_data_size(size_t page_sz, unsigned int elt_sz, unsigned int len)
 {
@@ -71,6 +74,7 @@ calc_data_size(size_t page_sz, unsigned int elt_sz, unsigned int len)
 	return RTE_ALIGN_CEIL(data_sz + msk_sz, page_sz);
 }
 
+// mask区的偏移
 static struct used_mask *
 get_used_mask(void *data, unsigned int elt_sz, unsigned int len)
 {
@@ -308,7 +312,7 @@ find_next(const struct rte_fbarray *arr, unsigned int start, bool used)
 		 * find first set bit - that will correspond to whatever it is
 		 * that we're looking for.
 		 */
-		found = __builtin_ctzll(cur);
+		found = __builtin_ctzll(cur); // 判断 cur 的二进制末尾后面0的个数
 		return MASK_GET_IDX(idx, found);
 	}
 	/* we didn't find anything */
@@ -701,6 +705,7 @@ fully_validate(const char *name, unsigned int elt_sz, unsigned int len)
 	return 0;
 }
 
+// 初始化 fbarray
 int
 rte_fbarray_init(struct rte_fbarray *arr, const char *name, unsigned int len,
 		unsigned int elt_sz)
@@ -729,6 +734,7 @@ rte_fbarray_init(struct rte_fbarray *arr, const char *name, unsigned int len,
 		return -1;
 	}
 
+	// 系統内存页大小
 	page_sz = rte_mem_page_size();
 	if (page_sz == (size_t)-1) {
 		free(ma);
@@ -738,6 +744,7 @@ rte_fbarray_init(struct rte_fbarray *arr, const char *name, unsigned int len,
 	/* calculate our memory limits */
 	mmap_len = calc_data_size(page_sz, elt_sz, len);
 
+	// 分配一块虚存
 	data = eal_get_virtual_area(NULL, &mmap_len, page_sz, 0, 0);
 	if (data == NULL) {
 		free(ma);
@@ -788,6 +795,7 @@ rte_fbarray_init(struct rte_fbarray *arr, const char *name, unsigned int len,
 		if (eal_file_lock(fd, EAL_FLOCK_SHARED, EAL_FLOCK_RETURN))
 			goto fail;
 
+		// 共享内存
 		if (resize_and_map(fd, path, data, mmap_len))
 			goto fail;
 	}
@@ -797,6 +805,8 @@ rte_fbarray_init(struct rte_fbarray *arr, const char *name, unsigned int len,
 
 	/* do not close fd - keep it until detach/destroy */
 	TAILQ_INSERT_TAIL(&mem_area_tailq, ma, next);
+
+	// rte_fbarray 赋值，data 是共享内存
 
 	/* initialize the data */
 	memset(data, 0, mmap_len);
@@ -1054,6 +1064,7 @@ out:
 	return ret;
 }
 
+// 索引到存储的成员
 void *
 rte_fbarray_get(const struct rte_fbarray *arr, unsigned int idx)
 {
@@ -1085,6 +1096,7 @@ rte_fbarray_set_free(struct rte_fbarray *arr, unsigned int idx)
 	return set_used(arr, idx, false);
 }
 
+// 通过bitmap标记，返回成员索引是否有效
 int
 rte_fbarray_is_used(struct rte_fbarray *arr, unsigned int idx)
 {

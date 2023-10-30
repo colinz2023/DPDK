@@ -26,6 +26,7 @@
 #include "rte_ring.h"
 #include "rte_ring_elem.h"
 
+// 注册是以 rte_tailq_elem 类型 注册的，再转回 rte_ring_list
 TAILQ_HEAD(rte_ring_list, rte_tailq_entry);
 
 static struct rte_tailq_elem rte_ring_tailq = {

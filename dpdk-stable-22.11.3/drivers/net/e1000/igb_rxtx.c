@@ -92,7 +92,7 @@ struct igb_rx_queue {
 	struct rte_mempool  *mb_pool;   /**< mbuf pool to populate RX ring. */
 	volatile union e1000_adv_rx_desc *rx_ring; /**< RX ring virtual address. */
 	uint64_t            rx_ring_phys_addr; /**< RX ring DMA address. */
-	volatile uint32_t   *rdt_reg_addr; /**< RDT register address. */
+	volatile uint32_t   *rdt_reg_addr; /**< RDT register address. */ // TAIL 寄存器
 	volatile uint32_t   *rdh_reg_addr; /**< RDH register address. */
 	struct igb_rx_entry *sw_ring;   /**< address of RX software ring. */
 	struct rte_mbuf *pkt_first_seg; /**< First segment of current packet. */
@@ -970,6 +970,7 @@ eth_igb_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 	 * RDH register, which creates a "full" ring situation from the
 	 * hardware point of view...
 	 */
+	// 超过阈值，更新 TAIL 寄存器
 	nb_hold = (uint16_t) (nb_hold + rxq->nb_rx_hold);
 	if (nb_hold > rxq->rx_free_thresh) {
 		PMD_RX_LOG(DEBUG, "port_id=%u queue_id=%u rx_tail=%u "

@@ -22,6 +22,7 @@
 #include "eal_private.h"
 #include "eal_memcfg.h"
 
+// 通过名字找到 memzone
 static inline const struct rte_memzone *
 memzone_lookup_thread_unsafe(const char *name)
 {
@@ -305,6 +306,7 @@ rte_memzone_free(const struct rte_memzone *mz)
 /*
  * Lookup for the memzone identified by the given name
  */
+// 查找 memzone
 const struct rte_memzone *
 rte_memzone_lookup(const char *name)
 {
@@ -323,6 +325,8 @@ rte_memzone_lookup(const char *name)
 	return memzone;
 }
 
+// 可以看出 memozone 是 msl 上的一个地址。
+// msl 是连续的地址
 static void
 dump_memzone(const struct rte_memzone *mz, void *arg)
 {
@@ -356,9 +360,9 @@ dump_memzone(const struct rte_memzone *mz, void *arg)
 	mz_end = RTE_PTR_ADD(cur_addr, mz->len);
 
 	fprintf(f, "physical segments used:\n");
-	ms_idx = RTE_PTR_DIFF(mz->addr, msl->base_va) / page_sz;
-	ms = rte_fbarray_get(&msl->memseg_arr, ms_idx);
-
+	ms_idx = RTE_PTR_DIFF(mz->addr, msl->base_va) / page_sz; // 获得 memseg 的下标
+	ms = rte_fbarray_get(&msl->memseg_arr, ms_idx);          // 定位到 memseg
+	// 一个memzone 可能跨越多个 memseg
 	do {
 		fprintf(f, "  addr: %p iova: 0x%" PRIx64 " "
 				"len: 0x%zx "
@@ -366,6 +370,7 @@ dump_memzone(const struct rte_memzone *mz, void *arg)
 			cur_addr, ms->iova, ms->len, page_sz);
 
 		/* advance VA to next page */
+		// 下一个 memseg
 		cur_addr = RTE_PTR_ADD(cur_addr, page_sz);
 
 		/* memzones occupy contiguous segments */

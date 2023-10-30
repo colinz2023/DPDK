@@ -978,6 +978,7 @@ rte_eal_init(int argc, char **argv)
 		return -1;
 	}
 
+	// https://gcc.gnu.org/onlinedocs/gcc/_005f_005fatomic-Builtins.html
 	if (!__atomic_compare_exchange_n(&run_once, &has_run, 1, 0,
 					__ATOMIC_RELAXED, __ATOMIC_RELAXED)) {
 		rte_eal_init_alert("already called initialization.");
@@ -1029,16 +1030,20 @@ rte_eal_init(int argc, char **argv)
 		return -1;
 	}
 
+	// 这里 internal_conf->process_type 如果是 second 会等待 primary 完成 eal init。
+	// second 会 attach memory config
 	if (rte_config_init() < 0) {
 		rte_eal_init_alert("Cannot init config");
 		return -1;
 	}
 
+	// 中断, 事件抽象
 	if (rte_eal_intr_init() < 0) {
 		rte_eal_init_alert("Cannot init interrupt-handling thread");
 		return -1;
 	}
 
+	// alarm, depends on intr
 	if (rte_eal_alarm_init() < 0) {
 		rte_eal_init_alert("Cannot init alarm");
 		/* rte_eal_alarm_init sets rte_errno on failure. */
@@ -1056,6 +1061,9 @@ rte_eal_init(int argc, char **argv)
 		}
 	}
 
+	// 总线 scan
+	// -总线
+	// 	- PCI总线
 	if (rte_bus_scan()) {
 		rte_eal_init_alert("Cannot scan the buses for devices");
 		rte_errno = ENODEV;
@@ -1063,6 +1071,8 @@ rte_eal_init(int argc, char **argv)
 		return -1;
 	}
 
+	// 检查是否可以将虚存地址转换为物理内存地址
+	// 条件： 可以读 /proc/self/pagemap
 	phys_addrs = rte_eal_using_phys_addrs() != 0;
 
 	/* if no EAL option "--iova-mode=<pa|va>", use bus IOVA scheme */
@@ -1080,6 +1090,7 @@ rte_eal_init(int argc, char **argv)
 				iova_mode = RTE_IOVA_VA;
 				RTE_LOG(DEBUG, EAL, "Physical addresses are unavailable, selecting IOVA as VA mode.\n");
 #if defined(RTE_LIB_KNI) && LINUX_VERSION_CODE >= KERNEL_VERSION(4, 10, 0)
+				// KNI 必须为 PA 模式 ？
 			} else if (rte_eal_check_module("rte_kni") == 1) {
 				iova_mode = RTE_IOVA_PA;
 				RTE_LOG(DEBUG, EAL, "KNI is loaded, selecting IOVA as PA mode for better KNI performance.\n");

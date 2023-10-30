@@ -335,6 +335,7 @@ remove_elem(struct malloc_elem *elem)
 	elem->next = NULL;
 }
 
+// 查看 elem 的下一个节点，是否和 elem 内存连续
 static int
 next_elem_is_adjacent(struct malloc_elem *elem)
 {
@@ -347,6 +348,7 @@ next_elem_is_adjacent(struct malloc_elem *elem)
 			 elem->orig_elem == elem->next->orig_elem);
 }
 
+// 查看 elem 的前一个节点，是否和 elem 内存连续
 static int
 prev_elem_is_adjacent(struct malloc_elem *elem)
 {
@@ -491,6 +493,7 @@ malloc_elem_alloc(struct malloc_elem *elem, size_t size, unsigned align,
  * join two struct malloc_elem together. elem1 and elem2 must
  * be contiguous in memory.
  */
+ // elem1 和 elem2 必须相连，将 elem2 合并到 elem1, 即 elem1 的长度加上 elem2 的长度
 static inline void
 join_elem(struct malloc_elem *elem1, struct malloc_elem *elem2)
 {
@@ -508,6 +511,9 @@ join_elem(struct malloc_elem *elem1, struct malloc_elem *elem2)
 	}
 }
 
+// 合并条件：
+// 1. 状态为 ELEM_FREE
+// 2. 连接
 struct malloc_elem *
 malloc_elem_join_adjacent_free(struct malloc_elem *elem)
 {

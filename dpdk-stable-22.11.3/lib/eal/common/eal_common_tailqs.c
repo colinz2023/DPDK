@@ -22,6 +22,7 @@ static struct rte_tailq_elem_head rte_tailq_elem_head =
 /* number of tailqs registered, -1 before call to rte_eal_tailqs_init */
 static int rte_tailqs_count = -1;
 
+// 通过 name 在共享内存中查找 rte_tailq_head
 struct rte_tailq_head *
 rte_eal_tailq_lookup(const char *name)
 {
@@ -59,6 +60,8 @@ rte_dump_tailq(FILE *f)
 	rte_mcfg_tailq_read_unlock();
 }
 
+// rte_tailq_head 是在共享内存中的
+// 同时给相应的 head 分配 name
 static struct rte_tailq_head *
 rte_eal_tailq_create(const char *name)
 {
@@ -80,6 +83,8 @@ rte_eal_tailq_create(const char *name)
 
 /* local register, used to store "early" tailqs before rte_eal_init() and to
  * ensure secondary process only registers tailqs once. */
+// 这里只是初始化，rte_tailq_elem 链表
+// 各个 elem 的 head 稍后 attach
 static int
 rte_eal_tailq_local_register(struct rte_tailq_elem *t)
 {
@@ -94,6 +99,7 @@ rte_eal_tailq_local_register(struct rte_tailq_elem *t)
 	return 0;
 }
 
+// head 是从共享内存中拿来的
 static void
 rte_eal_tailq_update(struct rte_tailq_elem *t)
 {
@@ -105,6 +111,7 @@ rte_eal_tailq_update(struct rte_tailq_elem *t)
 	}
 }
 
+// 注册一个 rte_tailq_elem，这里 elem 的 head 没有初始化
 int
 rte_eal_tailq_register(struct rte_tailq_elem *t)
 {
@@ -137,6 +144,9 @@ int
 rte_eal_tailqs_init(void)
 {
 	struct rte_tailq_elem *t;
+	// 这块有意思，这里设置为 0
+	// 如果为 -1， rte_eal_tailq_register 时是不会 调用 rte_eal_tailq_create
+	// 将每一个 tailq_elem 的 head 初始化
 
 	rte_tailqs_count = 0;
 

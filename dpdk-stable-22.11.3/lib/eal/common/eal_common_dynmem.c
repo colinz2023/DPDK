@@ -73,6 +73,7 @@ eal_dynmem_memseg_lists_init(void)
 	 */
 
 	/* create space for mem types */
+	// num_hugepage_sizes 多少种 hugepage, 乘以 socket 数量
 	n_memtypes = internal_conf->num_hugepage_sizes * rte_socket_count();
 	memtypes = calloc(n_memtypes, sizeof(*memtypes));
 	if (memtypes == NULL) {
@@ -110,13 +111,15 @@ eal_dynmem_memseg_lists_init(void)
 	n_memtypes = cur_type;
 
 	/* set up limits for types */
-	max_mem = (uint64_t)RTE_MAX_MEM_MB << 20;
+	max_mem = (uint64_t)RTE_MAX_MEM_MB << 20; // 524288
+	// 65536 << 20
 	max_mem_per_type = RTE_MIN((uint64_t)RTE_MAX_MEM_MB_PER_TYPE << 20,
 			max_mem / n_memtypes);
 	/*
 	 * limit maximum number of segment lists per type to ensure there's
 	 * space for memseg lists for all NUMA nodes with all page sizes
 	 */
+	// 128
 	max_seglists_per_type = RTE_MAX_MEMSEG_LISTS / n_memtypes;
 
 	if (max_seglists_per_type == 0) {
@@ -176,6 +179,7 @@ eal_dynmem_memseg_lists_init(void)
 			n_seglists, n_segs, socket_id, pagesz);
 
 		/* create all segment lists */
+		// n_seglists 即针对的是每个 socket 的某种大页，对应的 memseglist 的个数
 		for (cur_seglist = 0; cur_seglist < n_seglists; cur_seglist++) {
 			if (msl_idx >= RTE_MAX_MEMSEG_LISTS) {
 				RTE_LOG(ERR, EAL,
@@ -184,6 +188,8 @@ eal_dynmem_memseg_lists_init(void)
 			}
 			msl = &mcfg->memsegs[msl_idx++];
 
+			// 主要是分配虚存。物理内存会通过映射到 hugetlbfs 文件分配
+			// 物理内存页是连续的
 			if (eal_memseg_list_init(msl, pagesz, n_segs,
 					socket_id, cur_seglist, true))
 				goto out;

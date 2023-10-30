@@ -466,6 +466,7 @@ uio_intr_disable(const struct rte_intr_handle *intr_handle)
 	return 0;
 }
 
+// 向 /dev/uioX 写 1
 static int
 uio_intr_enable(const struct rte_intr_handle *intr_handle)
 {

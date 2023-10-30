@@ -80,6 +80,7 @@ rte_lcore_has_role(unsigned int lcore_id, enum rte_lcore_role_t role)
 	return cfg->lcore_role[lcore_id] == role;
 }
 
+// 判断是否置为 ROLE_RTE
 int rte_lcore_is_enabled(unsigned int lcore_id)
 {
 	struct rte_config *cfg = rte_eal_get_configuration();
@@ -209,6 +210,7 @@ rte_eal_cpu_init(void)
 	return 0;
 }
 
+// 有多少个 socket
 unsigned int
 rte_socket_count(void)
 {
