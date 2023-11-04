@@ -1,0 +1,31 @@
+{
+    "configurations": [
+        {
+            "name": "DPDK_linux_x64",
+            "includePath": [
+                "${workspaceFolder}/lib/eal",
+                "${workspaceFolder}/lib/eal/common",
+                "${workspaceFolder}/lib/eal/include",
+                "${workspaceFolder}/lib/eal/include/generic",
+                "${workspaceFolder}/lib/ring",
+                "${workspaceFolder}/lib/mbuf",
+                "${workspaceFolder}/lib/mempool",
+                "${workspaceFolder}/lib/ethdev",
+                "${workspaceFolder}/lib/timer"
+            ],
+            "defines": [
+                "RTE_EXEC_ENV_LINUX",
+                "RTE_ARCH_X86_64",
+                "RTE_BACKTRACE",
+            ],
+            "browse": {
+                "limitSymbolsToIncludedHeaders": false,
+                "databaseFilename": ".vscode/browse.DPDK.Linux_x86_64.db"
+            },
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "linux-gcc-x64"
+        }
+    ],
+    "version": 4
+}

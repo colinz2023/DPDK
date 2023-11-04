@@ -1,0 +1,29 @@
+{
+    // editor
+    "editor.rulers": [100, 100],
+
+    "editor.fontSize": 13.5,
+    "cmake.configureOnOpen": false,
+
+    // files
+    "files.associations": {
+        "*.ipp": "c",
+        "stdint.h": "c",
+        "dev_driver.h": "c",
+        "eal_private.h": "c"
+    },
+    "files.exclude": {
+        "lib/eal/arm": true,
+        "lib/eal/loongarch": true,
+        "lib/eal/ppc": true,
+        "lib/eal/riscv": true,
+        "lib/eal/freebsd": true,
+        "lib/eal/windows": true,
+        "config/arm": true,
+        "config/loongarch": true,
+        "config/ppc": true,
+        "config/riscv": true,
+        "kernel/freebsd": true,
+    },
+
+}
