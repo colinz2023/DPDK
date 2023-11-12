@@ -1,8 +1,9 @@
 {
     // editor
+    "editor.fontFamily": "Consolas, 'Courier New', monospace",
     "editor.rulers": [100, 100],
-
-    "editor.fontSize": 13.5,
+    "editor.fontSize": 14,
+    "editor.renderWhitespace": "none",
     "cmake.configureOnOpen": false,
 
     // files
